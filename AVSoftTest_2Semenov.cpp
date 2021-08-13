@@ -8,17 +8,19 @@
 #include "Commands/AllCommands.h"
 #include "Patterns/CommandManager.h"
 
-
+#include <Windows.h>
+#define MAX_INPUT_LENGTH 255
 
 void XMLtoComposite(std::string filename, ptr<CorporateStructure> head);
 void FishEmployees(ptr<Component> structure, const tinyxml2::XMLElement* department);
 ptr<Command> ConsoleInCommand(std::string cinput, ptr<Component> company, CommandManager& mgr);
 
+//Cyrillic input, Windows dependent
+std::string UTFconsole();
+
+
 int main()
 {
-	std::cout << "DISCLAIMER: windows console may have troubles with cyrillic input, that leads to inability to test removal or modifications of test xml data," <<
-		" in order to do these tests, please create latin departments and employees with provided interface.\n\n";
-
 	CommandManager mgr;
 	ptr<Component> Company { new CorporateStructure("AVSoft") };
 	std::string filepath;
@@ -148,11 +150,11 @@ ptr<Command> ConsoleInCommand(std::string cinput, ptr<Component> company, Comman
 		}
 
 		std::cout << "Enter name of the new element:\n";
-		std::getline(std::cin, in);
+		in = UTFconsole();
 
 		std::string name = in;
 		std::cout << "Enter name of the department where new element will be inserted\n";
-		std::getline(std::cin, in);
+		in = UTFconsole();
 		ptr<Component> department = Find<CorporateStructure>(in, company);
 		try {
 			if (tokens[1] == "e")
@@ -171,7 +173,7 @@ ptr<Command> ConsoleInCommand(std::string cinput, ptr<Component> company, Comman
 	/*Remove component command*/
 	else if (strcmd == "remove") {
 		std::cout << "Enter name of the element for removal:\n";
-		std::getline(std::cin, in);
+		in = UTFconsole();
 		ptr<Component> comp = Find<Component>(in, company);
 			return cmd = ptr<Command>( new RemoveCommand(comp));
 	}
@@ -179,8 +181,7 @@ ptr<Command> ConsoleInCommand(std::string cinput, ptr<Component> company, Comman
 	/*Count number of employees in particular structure*/
 	else if (strcmd == "heads") {
 		std::cout << "Enter name of the department:\n";
-		std::getline(std::cin, in);
-		std::cout << in << std::endl;
+		in = UTFconsole();
 
 		ptr<CorporateStructure> comp = Find<CorporateStructure>(in, company);
 		if (comp)
@@ -193,7 +194,7 @@ ptr<Command> ConsoleInCommand(std::string cinput, ptr<Component> company, Comman
 	/*Calculate average wage of the department*/
 	else if (strcmd == "awage") {
 		std::cout << "Enter name of the department:\n";
-		std::getline(std::cin, in);
+		in = UTFconsole();
 		ptr<CorporateStructure> comp = Find<CorporateStructure>(in, company);
 		if (comp)
 			std::cout << comp->GetAverageWage() << std::endl;
@@ -209,7 +210,7 @@ ptr<Command> ConsoleInCommand(std::string cinput, ptr<Component> company, Comman
 		ptr<Employee> comp = Find<Employee>(in, company);
 
 		std::cout << "Enter new wage number\n";
-		std::getline(std::cin, in);
+		in = UTFconsole();
 		int wage = 0;
 		try {
 			wage = std::stoi(in);
@@ -223,22 +224,23 @@ ptr<Command> ConsoleInCommand(std::string cinput, ptr<Component> company, Comman
 	/*Set position for employee*/
 	else if (strcmd == "setposition") {
 		std::cout << "Enter name of the employee:\n";
-		std::getline(std::cin, in);
+		in = UTFconsole();
+		//std::getline(std::cin, in);
 		ptr<Employee> comp = Find<Employee>(in, company);
 
 		std::cout << "Enter new position\n";
-		std::getline(std::cin, in);
+		in = UTFconsole();
 		return ptr<Command>(new SetPositionCommand(comp, in));
 	}
 
 	/*Set name of component*/
 	else if (strcmd == "setname") {
 		std::cout << "Enter name of the component:\n";
-		std::getline(std::cin, in);
+		in = UTFconsole();
 		ptr<Component> comp = Find<Component>(in, company);
 
 		std::cout << "Enter new name\n";
-		std::getline(std::cin, in);
+		in = UTFconsole();
 		return ptr<Command>(new SetNameCommand(comp, in));
 	}
 
@@ -250,3 +252,19 @@ ptr<Command> ConsoleInCommand(std::string cinput, ptr<Component> company, Comman
 	return nullptr;
 
 };
+
+std::string UTFconsole() {
+	SetConsoleCP(1251);
+	wchar_t wstr[MAX_INPUT_LENGTH];
+	char mb_str[MAX_INPUT_LENGTH * 3 + 1];
+
+	unsigned long read;
+	void* con = GetStdHandle(STD_INPUT_HANDLE);
+	ReadConsoleW(con, wstr, MAX_INPUT_LENGTH, &read, NULL);
+
+	int size = WideCharToMultiByte(CP_UTF8, 0, wstr, read, mb_str, sizeof(mb_str), NULL, NULL);
+	mb_str[size] = 0;
+
+	std::string res(mb_str, mb_str + size - 2);
+	return res;
+}
