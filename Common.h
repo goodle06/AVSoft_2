@@ -12,7 +12,6 @@
 #include <map>
 #include <codecvt>
 
-#include <Windows.h>
 
 template <class T>
 using ptr = std::shared_ptr<T>;
